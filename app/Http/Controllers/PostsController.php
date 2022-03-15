@@ -140,7 +140,6 @@ class PostsController extends Controller
             $fileNameToStore = $fileName ."_".time().".".$fileExtension;
             // Upload Image
             $path = $request->file('cover_image')->storeAS('public/cover_images',$fileNameToStore);
-     
         }
         
         //Update post
