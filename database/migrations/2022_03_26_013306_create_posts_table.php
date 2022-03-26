@@ -17,6 +17,8 @@ class CreatePostsTable extends Migration
             $table->increments("id");
             $table->string("title");
             $table->mediumText("body");
+            $table->string('cover_image');
+            $table->foreignId('user_id')->constrained();
             $table->timestamps();
         });
     }
