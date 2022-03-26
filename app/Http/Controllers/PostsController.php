@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Http\Requests\storedPostRequest;
+use App\Http\Requests\UpdatedPostRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use  App\models\post;
@@ -21,11 +22,6 @@ class PostsController extends Controller
      */
     public function index()
     {
-        //
-        // $Posts = posts::all();
-        //$posts =  post::where("title","Post Two")->get();
-        //  $posts =  post::orderBy("title","desc")->take(1)->get();
-        //  $posts =  DB::select('SELECT * FROM `POSTS`');
         $Posts = post::orderBy("created_at","desc")->paginate(10);
         return view("posts.index")->with("posts",$Posts);
     }
@@ -37,25 +33,16 @@ class PostsController extends Controller
      */
     public function create()
     {
-        //
         return view("posts.create");
     }
-
     /**
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(storedPostRequest $request)
     {
-        //
-        $this->validate($request,[
-            'title' => 'required',
-            'body' => 'required',
-            'cover_image' => 'image| nullable|max:1999',
-        
-               ]);
         // Handle FileUpload
         if($request->hasFile('cover_image')){
             // Get Filename with extension
@@ -73,16 +60,18 @@ class PostsController extends Controller
             $fileNameToStore = 'noImage.jpg';
         }
 
-        
-        //create post
-        $post = new post;
-        $post->title =$request->input('title');
-        $post->body = $request->input('body');
-        $post->user_id = auth()->user()->id;
-        $post->cover_image = $fileNameToStore;
-        $post->save();
-        return redirect('/posts')->with('success','post created');
+        $attributes = $request->all();
+        $attributes['user_id'] = auth()->id();
+        $attributes['cover_image'] = $fileNameToStore;
+        post::create($attributes);
+        // post::create([
+        //     'title' => $request->input('title'),
+        //     'body' => $request->input('body'),
+        //     'user_id' => auth()->user()->id,
+        //     'cover_image' => $fileNameToStore,
+        // ]);
 
+        return redirect('/posts')->with('success','post created');
     }
 
     /**
@@ -93,7 +82,6 @@ class PostsController extends Controller
      */
     public function show($id)
     {
-        //
         $post = post::find($id);
         return view("posts.show")->with("post",$post);
     }
@@ -114,7 +102,6 @@ class PostsController extends Controller
         }
         return view("posts.edit")->with("post",$post);
     }
-
     /**
      * Update the specified resource in storage.
      *
@@ -122,12 +109,8 @@ class PostsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UpdatedPostRequest $request, post $post)
     {
-        $this->validate($request,[
-            'title' => 'required',
-            'body' => 'required'
-        ]);
         // Handle FileUpload
         if($request->hasFile('cover_image')){
             // Get Filename with extension
@@ -141,19 +124,17 @@ class PostsController extends Controller
             // Upload Image
             $path = $request->file('cover_image')->storeAS('public/cover_images',$fileNameToStore);
         }
-        
-        //Update post
-        $post = post::find($id);
-        $post->title =$request->input('title');
-        $post->body = $request->input('body');
-        if($request->hasFile('cover_image')){
-            $post->cover_image = $fileNameToStore;
+
+        // update Post
+         $attributes = $request->only('title','body');
+         if($request->hasFile('cover_image')){
+             $attributes['cover_image'] = $fileNameToStore;
         }
-        $post->save();
+        Post::where('id', $post->id)
+                ->update($attributes);
         return redirect('/posts')->with('success','post Updated');
 
     }
-
     /**
      * Remove the specified resource from storage.
      *
@@ -171,7 +152,6 @@ class PostsController extends Controller
             Storage::delete('public\cover_images/'.$post->cover_image);
         }
         $post->delete();
-        // return Redirect::back()->with('success','post Removed');
         return redirect('/posts')->with('success','post Removed');
 
     }
